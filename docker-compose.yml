@@ -1,0 +1,56 @@
+version: '3.1'
+
+services:
+  # Database
+  docker_db: 
+    image: mysql:8.0
+    ports:
+      - 3306:3306
+    networks:
+      - my_network
+    volumes:
+      # - $PWD/mount/mysql:/var/lib/mysql
+      - todo_db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=my_db
+  # Backend
+  api_server:
+    build:
+      context: dockerBackend
+      dockerfile: jar.Dockerfile
+    image: api_server:latest
+    ports: 
+      - 8080:8080
+    networks:
+      - my_network
+    environment:
+      - MYSQL_HOST=docker_db
+    depends_on:
+      - docker_db
+  # Frontend
+  todo_app:
+    build:
+      args:
+        - APP_ENV=production
+      context: dockerFrontendAngular
+      dockerfile: Dockerfile
+    image: todo_app:latest
+    environment:
+      - BACKEND_API_URL=localhost
+      - BACKEND_API_PORT=8080
+    ports: 
+      - 4200:80
+    networks:
+      - my_network
+    depends_on:
+      - api_server
+
+networks:
+    my_network:
+        driver: bridge
+
+volumes:
+  todo_db:
